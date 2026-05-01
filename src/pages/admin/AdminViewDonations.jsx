@@ -1,104 +1,169 @@
 import { useEffect, useState } from "react";
+import API from "../../api";
 
 function AdminViewDonations() {
   const [donations, setDonations] = useState([]);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("donations")) || [];
-    setDonations(stored);
+    fetchDonations();
   }, []);
 
-  const updateStatus = (id, newStatus) => {
-    const stored = JSON.parse(localStorage.getItem("donations")) || [];
-    const updated = stored.map((donation) =>
-      donation.id === id ? { ...donation, status: newStatus } : donation
-    );
-    localStorage.setItem("donations", JSON.stringify(updated));
-    setDonations(updated);
+  const fetchDonations = async () => {
+    try {
+      const res = await API.get("/donations");
+      setDonations(res.data);
+    } catch (err) {
+      console.error("Error fetching donations:", err);
+    }
   };
 
-  const hasPending = donations.some(
-    (donation) => donation.status === "Pending"
-  );
+  // ✅ FIXED STATUS UPDATE (PATCH API)
+  const updateStatus = async (id, status) => {
+    try {
+      await API.patch(`/donations/${id}/status`, {
+        status: status,
+      });
+
+      // 🔥 Instant UI update (no reload needed)
+      setDonations((prev) =>
+        prev.map((d) =>
+          d.id === id ? { ...d, status: status } : d
+        )
+      );
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
+
+  // ------------------ Styles ------------------
+
+  const containerStyle = {
+    minHeight: "100vh",
+    padding: "30px",
+    fontFamily: "Arial, sans-serif",
+    background: "linear-gradient(135deg, #43cea2, #185a9d)",
+  };
+
+  const headingStyle = {
+    textAlign: "center",
+    color: "#fff",
+    fontSize: "2.2rem",
+    marginBottom: "30px",
+    fontWeight: "bold",
+  };
+
+  const gridStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: "20px",
+  };
+
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: "15px",
+    padding: "20px",
+    width: "300px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+    transition: "0.3s",
+  };
+
+  const cardHoverStyle = {
+    transform: "translateY(-5px)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+  };
+
+  const pStyle = {
+    margin: "10px 0",
+    fontSize: "1rem",
+    color: "#333",
+  };
+
+  const statusStyle = (status) => ({
+    fontWeight: "bold",
+    color:
+      status === "Approved"
+        ? "green"
+        : status === "Rejected"
+        ? "red"
+        : "orange",
+  });
+
+  const buttonContainer = {
+    display: "flex",
+    justifyContent: "space-between",
+    marginTop: "15px",
+  };
+
+  const approveBtn = {
+    background: "linear-gradient(135deg, #00c853, #64dd17)",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "bold",
+  };
+
+  const rejectBtn = {
+    background: "linear-gradient(135deg, #ff1744, #ff616f)",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "bold",
+  };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #1d2b64, #f8cdda)",
-        padding: "40px 20px",
-      }}
-    >
-      <div
-        className="container p-4 shadow-lg"
-        style={{
-          background: "rgba(255,255,255,0.9)",
-          borderRadius: "20px",
-        }}
-      >
-        <h3 className="text-center mb-4 fw-bold">
-          📦 All Donations
-        </h3>
+    <div style={containerStyle}>
+      <h2 style={headingStyle}>📦 View Donations</h2>
 
-        {donations.length === 0 ? (
-          <p className="text-center">No donations available.</p>
-        ) : (
-          <div className="table-responsive">
-            <table className="table table-hover text-center align-middle">
-              <thead className="table-dark">
-                <tr>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Status</th>
-                  {hasPending && <th>Action</th>}
-                </tr>
-              </thead>
+      <div style={gridStyle}>
+        {donations.map((d) => (
+          <div
+            key={d.id}
+            style={cardStyle}
+            onMouseEnter={(e) =>
+              Object.assign(e.currentTarget.style, cardHoverStyle)
+            }
+            onMouseLeave={(e) =>
+              Object.assign(e.currentTarget.style, {
+                transform: "translateY(0)",
+                boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+              })
+            }
+          >
+            <p style={pStyle}>
+              <strong>Item:</strong> {d.item}
+            </p>
+            <p style={pStyle}>
+              <strong>Quantity:</strong> {d.quantity}
+            </p>
+            <p style={pStyle}>
+              <strong>Status:</strong>{" "}
+              <span style={statusStyle(d.status)}>{d.status}</span>
+            </p>
 
-              <tbody>
-                {donations.map((donation) => (
-                  <tr key={donation.id}>
-                    <td>{donation.item}</td>
-                    <td>{donation.quantity}</td>
-                    <td>
-                      <span
-                        className={`badge px-3 py-2 ${
-                          donation.status === "Pending"
-                            ? "bg-warning"
-                            : donation.status === "Approved"
-                            ? "bg-primary"
-                            : "bg-success"
-                        }`}
-                      >
-                        {donation.status}
-                      </span>
-                    </td>
+            {d.status === "Pending" && (
+              <div style={buttonContainer}>
+                <button
+                  style={approveBtn}
+                  onClick={() => updateStatus(d.id, "Approved")}
+                >
+                  Approve
+                </button>
 
-                    {donation.status === "Pending" && (
-                      <td>
-                        <button
-                          className="btn btn-success btn-sm me-2"
-                          onClick={() =>
-                            updateStatus(donation.id, "Approved")
-                          }
-                        >
-                          ✔ Approve
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() =>
-                            updateStatus(donation.id, "Rejected")
-                          }
-                        >
-                          ✖ Reject
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                <button
+                  style={rejectBtn}
+                  onClick={() => updateStatus(d.id, "Rejected")}
+                >
+                  Reject
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

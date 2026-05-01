@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import API from "../../api";
 
 function AddDonation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const driveName = queryParams.get("drive") || "General Drive";
+
+  const driveName =
+    new URLSearchParams(location.search).get("drive");
 
   const [formData, setFormData] = useState({
     item: "",
@@ -13,120 +15,153 @@ function AddDonation() {
   });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    if (!currentUser) {
-      alert("Please login first!");
+    const email = localStorage.getItem("userEmail");
+
+    if (!email) {
+      alert("Login first!");
       navigate("/login");
       return;
     }
 
-    const allDonations = JSON.parse(localStorage.getItem("donations")) || [];
+    try {
+      await API.post("/donations", {
+        driveName,
+        item: formData.item,
+        quantity: formData.quantity,
+        donorEmail: email,
+        status: "Pending",
+        date: new Date().toLocaleDateString(),
+      });
 
-    const donation = {
-      id: new Date().getTime(),
-      driveName: driveName,
-      item: formData.item,
-      quantity: formData.quantity,
-      status: "Pending",
-      donorEmail: currentUser.email,
-      date: new Date().toLocaleDateString(),
-    };
+      alert("Donation Added!");
+      navigate("/track-donations");
+    } catch (err) {
+      console.error(err);
+      alert("Error adding donation");
+    }
+  };
 
-    allDonations.push(donation);
-    localStorage.setItem("donations", JSON.stringify(allDonations));
+  // ------------------ Styles ------------------
 
-    alert("🎉 Donation added successfully!");
-    navigate("/track-donations");
+  const containerStyle = {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "linear-gradient(135deg, #43cea2, #185a9d)",
+    fontFamily: "Arial, sans-serif",
+  };
+
+  const formCard = {
+    background: "#fff",
+    padding: "30px",
+    borderRadius: "15px",
+    width: "320px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+    textAlign: "center",
+  };
+
+  const headingStyle = {
+    marginBottom: "20px",
+    color: "#333",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px",
+    margin: "10px 0",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    fontSize: "1rem",
+  };
+
+  const selectStyle = {
+    width: "100%",
+    padding: "10px",
+    margin: "10px 0",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    fontSize: "1rem",
+    background: "#fff",
+    cursor: "pointer",
+  };
+
+  const buttonStyle = {
+    width: "100%",
+    padding: "10px",
+    marginTop: "15px",
+    borderRadius: "8px",
+    border: "none",
+    background: "linear-gradient(135deg, #ff7e5f, #ff3f81)",
+    color: "#fff",
+    fontSize: "1rem",
+    fontWeight: "bold",
+    cursor: "pointer",
+    transition: "0.3s",
+  };
+
+  const buttonHover = {
+    transform: "scale(1.05)",
+    boxShadow: "0 5px 15px rgba(0,0,0,0.3)",
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea, #764ba2)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
-        className="card shadow-lg p-4"
-        style={{
-          width: "400px",
-          borderRadius: "20px",
-          background: "white",
-        }}
-      >
-        <h2
-          className="text-center mb-4"
-          style={{
-            fontWeight: "bold",
-            color: "#6a11cb",
-          }}
+    <div style={containerStyle}>
+      <form style={formCard} onSubmit={handleSubmit}>
+        <h2 style={headingStyle}>🎁 Add Donation</h2>
+
+        {/* Dropdown for Item */}
+        <select
+          name="item"
+          value={formData.item}
+          onChange={handleChange}
+          style={selectStyle}
+          required
         >
-          🎁 Add Donation
-        </h2>
+          <option value="">Select Item</option>
+          <option value="Clothes">Clothes</option>
+          <option value="Food">Food</option>
+          <option value="Books">Books</option>
+          <option value="Medicine">Medicine</option>
+          <option value="Other">Other</option>
+        </select>
 
-        <h5 className="text-center mb-3 text-muted">
-          Drive: <span style={{ color: "#2575fc" }}>{driveName}</span>
-        </h5>
+        {/* Quantity Input */}
+        <input
+          name="quantity"
+          placeholder="Quantity"
+          onChange={handleChange}
+          value={formData.quantity}
+          style={inputStyle}
+          required
+        />
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label fw-bold">Item Name</label>
-            <input
-              type="text"
-              className="form-control rounded-pill"
-              placeholder="Enter item name"
-              name="item"
-              value={formData.item}
-              onChange={handleChange}
-              required
-              style={{ padding: "10px 15px" }}
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label fw-bold">Quantity</label>
-            <input
-              type="number"
-              className="form-control rounded-pill"
-              placeholder="Enter quantity"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleChange}
-              required
-              style={{ padding: "10px 15px" }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="btn w-100 text-white fw-bold"
-            style={{
-              background: "linear-gradient(90deg, #ff512f, #dd2476)",
-              borderRadius: "30px",
-              padding: "10px",
-              border: "none",
-              transition: "0.3s",
-            }}
-            onMouseOver={(e) =>
-              (e.target.style.opacity = "0.8")
-            }
-            onMouseOut={(e) =>
-              (e.target.style.opacity = "1")
-            }
-          >
-            🚀 Submit Donation
-          </button>
-        </form>
-      </div>
+        {/* Submit Button */}
+        <button
+          type="submit"
+          style={buttonStyle}
+          onMouseEnter={(e) =>
+            Object.assign(e.currentTarget.style, buttonHover)
+          }
+          onMouseLeave={(e) =>
+            Object.assign(e.currentTarget.style, {
+              transform: "scale(1)",
+              boxShadow: "none",
+            })
+          }
+        >
+          Submit Donation
+        </button>
+      </form>
     </div>
   );
 }

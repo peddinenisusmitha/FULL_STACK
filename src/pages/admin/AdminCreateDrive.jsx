@@ -1,175 +1,166 @@
 import React, { useState } from "react";
+import API from "../../api";
 
 function AdminCreateDrive() {
-  const [driveName, setDriveName] = useState("");
-  const [location, setLocation] = useState("");
-  const [date, setDate] = useState("");
-  const [driveType, setDriveType] = useState("");
-  const [itemsNeeded, setItemsNeeded] = useState("");
-  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({
+    driveName: "",
+    location: "",
+    date: "",
+    driveType: "",
+    itemsNeeded: "",
+  });
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const newDrive = {
-      id: Date.now(),
-      driveName,
-      location,
-      date,
-      driveType,
-      itemsNeeded,
-      status: "Active",
-    };
+    try {
+      await API.post("/drives", {
+        ...formData,
+        status: "Active",
+      });
 
-    const existingDrives =
-      JSON.parse(localStorage.getItem("donationDrives")) || [];
+      alert("🎉 Drive Created Successfully!");
 
-    const updatedDrives = [...existingDrives, newDrive];
+      // reset form
+      setFormData({
+        driveName: "",
+        location: "",
+        date: "",
+        driveType: "",
+        itemsNeeded: "",
+      });
 
-    localStorage.setItem("donationDrives", JSON.stringify(updatedDrives));
-
-    setMessage("🎉 Donation Drive Created Successfully!");
-
-    // Clear Form
-    setDriveName("");
-    setLocation("");
-    setDate("");
-    setDriveType("");
-    setItemsNeeded("");
+    } catch (err) {
+      console.error(err);
+      alert("Error creating drive");
+    }
   };
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #ff9a9e, #fad0c4, #fad0c4)",
+        background: "linear-gradient(135deg, #667eea, #764ba2)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: "20px",
       }}
     >
+      {/* Glass Card */}
       <div
-        className="card shadow-lg p-4"
         style={{
-          width: "500px",
+          width: "420px",
+          padding: "30px",
           borderRadius: "20px",
-          background: "rgba(255,255,255,0.95)",
+          backdropFilter: "blur(15px)",
+          background: "rgba(255,255,255,0.15)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+          border: "1px solid rgba(255,255,255,0.3)",
+          color: "white",
         }}
       >
-        <h2
-          className="mb-4 text-center"
-          style={{ fontWeight: "bold", color: "#d63384" }}
-        >
-          🚀 Create Donation Drive
+        {/* Center Heading */}
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+          🚀 Create Drive
         </h2>
-
-        {message && (
-          <div className="alert alert-success text-center fw-bold">
-            {message}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           {/* Drive Name */}
-          <div className="mb-3">
-            <label className="form-label fw-bold">Drive Name</label>
-            <select
-              className="form-select rounded-pill"
-              value={driveName}
-              onChange={(e) => setDriveName(e.target.value)}
-              required
-            >
-              <option value="">Select Drive</option>
-              <option value="Flood Relief 2026">Flood Relief 2026</option>
-              <option value="Winter Blanket Drive">Winter Blanket Drive</option>
-              <option value="Food for All Campaign">Food for All Campaign</option>
-              <option value="Earthquake Emergency Support">
-                Earthquake Emergency Support
-              </option>
-            </select>
-          </div>
+          <select
+            name="driveName"
+            value={formData.driveName}
+            onChange={handleChange}
+            className="form-control mb-3"
+            required
+          >
+            <option value="">Select Drive Name</option>
+            <option value="Flood Relief 2026">Flood Relief 2026</option>
+            <option value="Food for All">Food for All</option>
+            <option value="Winter Clothes Drive">Winter Clothes Drive</option>
+            <option value="Medical Help Camp">Medical Help Camp</option>
+          </select>
 
           {/* Location */}
-          <div className="mb-3">
-            <label className="form-label fw-bold">Location</label>
-            <select
-              className="form-select rounded-pill"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            >
-              <option value="">Select Location</option>
-              <option value="Hyderabad">Hyderabad</option>
-              <option value="Vijayawada">Vijayawada</option>
-              <option value="Chennai">Chennai</option>
-              <option value="Bangalore">Bangalore</option>
-            </select>
-          </div>
+          <select
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            className="form-control mb-3"
+            required
+          >
+            <option value="">Select Location</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Vijayawada">Vijayawada</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Bangalore">Bangalore</option>
+            <option value="Nellore">Nellore</option>
+          </select>
 
           {/* Date */}
-          <div className="mb-3">
-            <label className="form-label fw-bold">Drive Date</label>
-            <input
-              type="date"
-              className="form-control rounded-pill"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
+          <input
+            type="date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            className="form-control mb-3"
+            required
+          />
 
           {/* Drive Type */}
-          <div className="mb-3">
-            <label className="form-label fw-bold">Drive Type</label>
-            <select
-              className="form-select rounded-pill"
-              value={driveType}
-              onChange={(e) => setDriveType(e.target.value)}
-              required
-            >
-              <option value="">Select Drive Type</option>
-              <option value="Food Donation">Food Donation</option>
-              <option value="Clothing Donation">Clothing Donation</option>
-              <option value="Medical Supplies">Medical Supplies</option>
-              <option value="Disaster Relief">Disaster Relief</option>
-            </select>
-          </div>
+          <select
+            name="driveType"
+            value={formData.driveType}
+            onChange={handleChange}
+            className="form-control mb-3"
+            required
+          >
+            <option value="">Select Type</option>
+            <option value="Food Donation">Food Donation</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Medical">Medical</option>
+            <option value="Disaster Relief">Disaster Relief</option>
+          </select>
 
           {/* Items Needed */}
-          <div className="mb-4">
-            <label className="form-label fw-bold">Items Needed</label>
-            <select
-              className="form-select rounded-pill"
-              value={itemsNeeded}
-              onChange={(e) => setItemsNeeded(e.target.value)}
-              required
-            >
-              <option value="">Select Item Type</option>
-              <option value="Rice & Groceries">Rice & Groceries</option>
-              <option value="Blankets">Blankets</option>
-              <option value="Clothes">Clothes</option>
-              <option value="Medicines">Medicines</option>
-            </select>
-          </div>
+          <select
+            name="itemsNeeded"
+            value={formData.itemsNeeded}
+            onChange={handleChange}
+            className="form-control mb-4"
+            required
+          >
+            <option value="">Select Items</option>
+            <option value="Rice & Groceries">Rice & Groceries</option>
+            <option value="Blankets">Blankets</option>
+            <option value="Clothes">Clothes</option>
+            <option value="Medicines">Medicines</option>
+          </select>
 
-          <div className="d-grid">
-            <button
-              type="submit"
-              className="btn text-white fw-bold"
-              style={{
-                background: "linear-gradient(90deg, #667eea, #764ba2)",
-                borderRadius: "30px",
-                padding: "10px",
-                border: "none",
-                transition: "0.3s",
-              }}
-              onMouseOver={(e) => (e.target.style.opacity = "0.8")}
-              onMouseOut={(e) => (e.target.style.opacity = "1")}
-            >
-              ✅ Create Drive
-            </button>
-          </div>
+          {/* Button */}
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "10px",
+              borderRadius: "25px",
+              border: "none",
+              background: "linear-gradient(90deg, #ff512f, #dd2476)",
+              color: "white",
+              fontWeight: "bold",
+              transition: "0.3s",
+            }}
+            onMouseOver={(e) => (e.target.style.opacity = "0.8")}
+            onMouseOut={(e) => (e.target.style.opacity = "1")}
+          >
+            ✅ Create Drive
+          </button>
         </form>
       </div>
     </div>

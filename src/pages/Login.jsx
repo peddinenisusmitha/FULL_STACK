@@ -1,5 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api";
+
+const getLoginErrorMessage = (err) => {
+  const status = err.response?.status;
+  const responseData = err.response?.data;
+
+  if (typeof responseData === "string" && responseData.trim()) {
+    return responseData;
+  }
+
+  if (responseData?.message) {
+    return responseData.message;
+  }
+
+  if (responseData?.errors) {
+    const errors = Array.isArray(responseData.errors)
+      ? responseData.errors
+      : Object.values(responseData.errors);
+
+    return errors.flat().join("\n");
+  }
+
+  if (status === 400) {
+    return "Please enter a valid email and password.";
+  }
+
+  return "Invalid Email or Password";
+};
 
 function Login() {
   const navigate = useNavigate();
@@ -7,7 +35,6 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Captcha states
   const [num1, setNum1] = useState(0);
   const [num2, setNum2] = useState(0);
   const [captchaInput, setCaptchaInput] = useState("");
@@ -17,15 +44,14 @@ function Login() {
   }, []);
 
   const generateCaptcha = () => {
-    const number1 = Math.floor(Math.random() * 10) + 1;
-    const number2 = Math.floor(Math.random() * 10) + 1;
-    setNum1(number1);
-    setNum2(number2);
+    setNum1(Math.floor(Math.random() * 10) + 1);
+    setNum2(Math.floor(Math.random() * 10) + 1);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
+    // ✅ Captcha check
     if (parseInt(captchaInput) !== num1 + num2) {
       alert("Captcha is incorrect!");
       generateCaptcha();
@@ -33,26 +59,41 @@ function Login() {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    try {
+      // ✅ API CALL
+      const res = await API.post("/auth/login", {
+        email,
+        password,
+      });
 
-    const foundUser = users.find(
-      (user) =>
-        user.email.trim().toLowerCase() === email.trim().toLowerCase() &&
-        user.password.trim() === password.trim()
-    );
+      console.log("LOGIN SUCCESS:", res.data);
 
-    if (foundUser) {
-      localStorage.setItem("currentUser", JSON.stringify(foundUser));
+      const normalizedRole = String(res.data.role || "").toLowerCase();
 
+      // ✅ Store login data
+      localStorage.setItem("userEmail", res.data.email);
+      localStorage.setItem("userRole", normalizedRole);
+
+      // reset form
       setEmail("");
       setPassword("");
       setCaptchaInput("");
       generateCaptcha();
 
-      navigate(`/${foundUser.role}`);
-      window.location.reload();
-    } else {
-      alert("Invalid Email or Password");
+      // ✅ Navigate
+      navigate(`/${normalizedRole}`);
+
+      // 🔥 VERY IMPORTANT FIX
+      window.location.reload(); // 👉 forces Navbar to update
+
+    } catch (err) {
+      console.error("LOGIN ERROR:", err.response?.data || err.message);
+
+      alert(
+        err.response?.data?.message ||
+        "Invalid Email or Password"
+      );
+
       generateCaptcha();
       setCaptchaInput("");
     }
@@ -86,7 +127,6 @@ function Login() {
             placeholder="Enter Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="off"
             required
           />
 
@@ -96,7 +136,6 @@ function Login() {
             placeholder="Enter Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
             required
           />
 

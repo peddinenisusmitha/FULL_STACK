@@ -3,17 +3,30 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Navbar() {
   const navigate = useNavigate();
-  const [loggedInUser, setLoggedInUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // ✅ Check login status when component loads
+  // ✅ Function to check login
+  const checkLogin = () => {
+    const email = localStorage.getItem("userEmail");
+    setIsLoggedIn(!!email);
+  };
+
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("currentUser"));
-    setLoggedInUser(user);
+    checkLogin();
+
+    // ✅ Listen for changes (VERY IMPORTANT)
+    window.addEventListener("storage", checkLogin);
+
+    return () => {
+      window.removeEventListener("storage", checkLogin);
+    };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("currentUser");
-    setLoggedInUser(null);
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+
+    setIsLoggedIn(false);
     navigate("/login");
   };
 
@@ -24,7 +37,7 @@ function Navbar() {
       </Link>
 
       <div>
-        {!loggedInUser ? (
+        {!isLoggedIn ? (
           <>
             <Link className="btn btn-outline-light me-2" to="/login">
               Login

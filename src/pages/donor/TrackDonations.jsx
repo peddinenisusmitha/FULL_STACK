@@ -1,94 +1,142 @@
 import React, { useEffect, useState } from "react";
+import API from "../../api";
 
 function TrackDonations() {
   const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    if (!currentUser) return;
-
-    const stored = JSON.parse(localStorage.getItem("donations")) || [];
-
-    const myDonations = stored.filter(
-      (donation) => donation.donorEmail === currentUser.email
-    );
-
-    setDonations(myDonations);
+    fetchDonations();
   }, []);
 
+  const fetchDonations = async () => {
+    try {
+      const email = localStorage.getItem("userEmail");
+
+      if (!email) {
+        alert("Please login first!");
+        return;
+      }
+
+      // ✅ FIXED API CALL
+      const res = await API.get("/donations");
+
+      // ✅ FILTER USER DONATIONS
+      const userDonations = res.data.filter(
+        (d) => d.donorEmail === email
+      );
+
+      setDonations(userDonations);
+
+    } catch (err) {
+      console.error("Error fetching donations:", err);
+      alert("Failed to load donations");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ------------------ Styles ------------------
+
+  const containerStyle = {
+    minHeight: "100vh",
+    padding: "30px 20px",
+    background: "linear-gradient(135deg, #43cea2, #185a9d)",
+    fontFamily: "Arial, sans-serif",
+  };
+
+  const headingStyle = {
+    textAlign: "center",
+    color: "#fff",
+    fontSize: "2rem",
+    marginBottom: "25px",
+    fontWeight: "bold",
+  };
+
+  const gridStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: "20px",
+  };
+
+  const cardStyle = {
+    background: "#ffffff",
+    borderRadius: "15px",
+    padding: "20px",
+    width: "280px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+    transition: "0.3s",
+  };
+
+  const cardHover = {
+    transform: "translateY(-5px)",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+  };
+
+  const textStyle = {
+    fontSize: "0.95rem",
+    color: "#444",
+    margin: "8px 0",
+  };
+
+  const statusStyle = (status) => ({
+    fontWeight: "bold",
+    color:
+      status === "Pending"
+        ? "orange"
+        : status === "Approved"
+        ? "blue"
+        : "green",
+  });
+
+  // ------------------ UI ------------------
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: "40px",
-        background: "linear-gradient(to right, #ff9a9e, #fad0c4)",
-      }}
-    >
-      <div className="container">
-        <h2
-          className="text-center mb-4"
-          style={{ color: "white", fontWeight: "bold" }}
-        >
-          📊 Track Your Donations
-        </h2>
+    <div style={containerStyle}>
+      <h2 style={headingStyle}>📊 My Donations</h2>
 
-        {donations.length === 0 ? (
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              textAlign: "center",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-            }}
-          >
-            No donations made yet.
-          </div>
-        ) : (
-          <div className="row">
-            {donations.map((donation) => (
-              <div className="col-md-4 mb-4" key={donation.id}>
-                <div
-                  style={{
-                    backgroundColor: "white",
-                    padding: "20px",
-                    borderRadius: "15px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-                    height: "100%",
-                  }}
-                >
-                  <h5 style={{ color: "#007bff", fontWeight: "bold" }}>
-                    {donation.driveName}
-                  </h5>
-
-                  <p>
-                    <strong>📦 Item:</strong> {donation.item}
-                  </p>
-
-                  <p>
-                    <strong>🔢 Quantity:</strong> {donation.quantity}
-                  </p>
-
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    <span
-                      className={`badge ${
-                        donation.status === "Pending"
-                          ? "bg-warning text-dark"
-                          : donation.status === "Approved"
-                          ? "bg-primary"
-                          : "bg-success"
-                      }`}
-                    >
-                      {donation.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <p style={{ color: "#fff", textAlign: "center" }}>Loading...</p>
+      ) : donations.length === 0 ? (
+        <p style={{ color: "#fff", textAlign: "center" }}>
+          No donations found
+        </p>
+      ) : (
+        <div style={gridStyle}>
+          {donations.map((d) => (
+            <div
+              key={d.id}
+              style={cardStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, cardHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, {
+                  transform: "translateY(0)",
+                  boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+                })
+              }
+            >
+              <p style={textStyle}>
+                <b>Item:</b> {d.item}
+              </p>
+              <p style={textStyle}>
+                <b>Quantity:</b> {d.quantity}
+              </p>
+              <p style={textStyle}>
+                <b>Status:</b>{" "}
+                <span style={statusStyle(d.status)}>
+                  {d.status}
+                </span>
+              </p>
+              <p style={textStyle}>
+                <b>Date:</b> {d.date}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
